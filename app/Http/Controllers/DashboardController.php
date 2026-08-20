@@ -457,6 +457,113 @@ class DashboardController extends Controller
         );
     }
 
+    public function waliKelas(): View
+    {
+        $guru = Auth::user()->guru;
+
+        abort_unless(
+            $guru && $guru->isWaliKelasAktif(),
+            403,
+            'Anda tidak memiliki penugasan sebagai wali kelas aktif.'
+        );
+
+        $kelasWali = $guru->kelasWaliAktif();
+        $kelasWali->load([
+            'kelas.jurusan',
+            'tahunAkademik',
+            'anggotaKelas.siswa',
+        ]);
+
+        $semesterAktif = Semester::aktif()
+            ->where('tahun_akademik_id', $kelasWali->tahun_akademik_id)
+            ->with('tahunAkademik')
+            ->first() ?? Semester::with('tahunAkademik')->latest('id')->first();
+
+        $anggotaKelas = $kelasWali->anggotaKelas->sortBy(fn ($a) => $a->siswa?->nama)->values();
+        $totalSiswa = $anggotaKelas->count();
+        $siswaIds = $anggotaKelas->pluck('siswa_id');
+
+        $jumlahMapel = Mengajar::where('kelas_akademik_id', $kelasWali->id)
+            ->when($semesterAktif, fn ($q) => $q->where('semester_id', $semesterAktif->id))
+            ->count();
+
+        // Rata-rata nilai kelas
+        $rataRataKelas = Nilai::whereIn('siswa_id', $siswaIds)
+            ->whereHas('penilaian.mengajar', fn ($q) => 
+                $q->where('kelas_akademik_id', $kelasWali->id)
+                  ->when($semesterAktif, fn ($sq) => $sq->where('semester_id', $semesterAktif->id))
+            )->avg('nilai');
+        $rataRataKelas = $rataRataKelas !== null ? round((float) $rataRataKelas, 1) : 0;
+
+        // Presensi rombel
+        $absensis = Absensi::with(['siswa', 'pertemuan.mengajar.mataPelajaran'])
+            ->whereIn('siswa_id', $siswaIds)
+            ->whereHas('pertemuan.mengajar', fn ($q) => 
+                $q->where('kelas_akademik_id', $kelasWali->id)
+                  ->when($semesterAktif, fn ($sq) => $sq->where('semester_id', $semesterAktif->id))
+            )->get();
+
+        $totalPresensi = $absensis->count();
+        $hadirCount = $absensis->where('status', 'hadir')->count();
+        $terlambatCount = $absensis->where('status', 'terlambat')->count();
+        $sakitCount = $absensis->where('status', 'sakit')->count();
+        $izinCount = $absensis->where('status', 'izin')->count();
+        $alpaCount = $absensis->where('status', 'alpa')->count();
+        $persentaseKehadiran = $totalPresensi > 0
+            ? round((($hadirCount + $terlambatCount) / $totalPresensi) * 100, 1)
+            : 100;
+
+        // Progress Catatan Wali Kelas
+        $totalCatatanDiisi = \App\Models\CatatanWaliKelas::where('kelas_akademik_id', $kelasWali->id)
+            ->when($semesterAktif, fn ($q) => $q->where('semester_id', $semesterAktif->id))
+            ->count();
+        $persenCatatan = $totalSiswa > 0 ? round(($totalCatatanDiisi / $totalSiswa) * 100) : 0;
+
+        // Monitoring Per Siswa
+        $siswaMonitoring = $anggotaKelas->map(function ($anggota) use ($absensis, $semesterAktif, $kelasWali) {
+            $siswa = $anggota->siswa;
+            $siswaAbsensi = $absensis->where('siswa_id', $siswa->id);
+            $totalAbsensiSiswa = $siswaAbsensi->count();
+            $hadirSiswa = $siswaAbsensi->whereIn('status', ['hadir', 'terlambat'])->count();
+            $alpaSiswa = $siswaAbsensi->where('status', 'alpa')->count();
+            $persenHadirSiswa = $totalAbsensiSiswa > 0 ? round(($hadirSiswa / $totalAbsensiSiswa) * 100, 1) : 100;
+
+            $hasCatatan = \App\Models\CatatanWaliKelas::where('siswa_id', $siswa->id)
+                ->where('kelas_akademik_id', $kelasWali->id)
+                ->when($semesterAktif, fn ($q) => $q->where('semester_id', $semesterAktif->id))
+                ->exists();
+
+            return [
+                'siswa' => $siswa,
+                'persen_hadir' => $persenHadirSiswa,
+                'alpa' => $alpaSiswa,
+                'has_catatan' => $hasCatatan,
+            ];
+        });
+
+        $recentAbsensi = $absensis->sortByDesc(fn ($a) => $a->pertemuan?->tanggal?->timestamp ?? 0)->take(6)->values();
+
+        return view('dashboard.wali-kelas', compact(
+            'guru',
+            'kelasWali',
+            'semesterAktif',
+            'totalSiswa',
+            'jumlahMapel',
+            'rataRataKelas',
+            'persentaseKehadiran',
+            'totalPresensi',
+            'hadirCount',
+            'terlambatCount',
+            'sakitCount',
+            'izinCount',
+            'alpaCount',
+            'totalCatatanDiisi',
+            'persenCatatan',
+            'siswaMonitoring',
+            'recentAbsensi'
+        ));
+    }
+
     private function hariIndonesia(): string
     {
         return match (now()->dayOfWeekIso) {

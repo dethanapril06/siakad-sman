@@ -393,6 +393,10 @@ Route::middleware('auth')->group(function () {
         ->prefix('wali-kelas')
         ->name('wali-kelas.')
         ->group(function () {
+            Route::get('/dashboard', [
+                DashboardController::class,
+                'waliKelas',
+            ])->name('dashboard');
 
             Route::get('/siswa', [
                 WaliKelasSiswaController::class,

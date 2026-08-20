@@ -422,6 +422,9 @@ class NilaiController extends Controller
             ->orderBy('nama')
             ->get();
 
+        $bobot = self::BOBOT;
+        $kkm = self::KKM;
+
         return view(
             'laporan.nilai.index',
             compact(

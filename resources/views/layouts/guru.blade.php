@@ -1,8 +1,13 @@
 @php
-    $roleLabel = 'Guru';
-    $dashboardRoute = 'guru.dashboard';
+    $guru = auth()->user()->guru;
+    $isWaliKelasAktif = $guru?->isWaliKelasAktif() ?? false;
+    $isWaliKelasContext = request()->routeIs('wali-kelas.*');
+    
+    $roleLabel = $isWaliKelasContext 
+        ? 'Wali Kelas ' . ($guru?->kelasWaliAktif()?->nama_lengkap ?? '')
+        : ($isWaliKelasAktif ? 'Guru & Wali Kelas' : 'Guru Pengampu');
+    $dashboardRoute = $isWaliKelasContext ? 'wali-kelas.dashboard' : 'guru.dashboard';
     $profileRoute = 'guru.profile';
-    $isWaliKelasAktif = auth()->user()->guru?->isWaliKelasAktif() ?? false;
     $menus = [
         [
             'label' => 'Dashboard',
@@ -65,6 +70,13 @@
         $menus[] = [
             'type' => 'header',
             'label' => 'Wali Kelas',
+        ];
+
+        $menus[] = [
+            'label' => 'Dashboard Wali',
+            'route' => 'wali-kelas.dashboard',
+            'active' => 'wali-kelas.dashboard',
+            'icon' => 'bx-tachometer',
         ];
 
         $menus[] = [

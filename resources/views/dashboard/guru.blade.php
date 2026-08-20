@@ -14,8 +14,13 @@
                                 Selamat datang di dashboard Guru. Pantau jadwal, absensi, dan nilai dari area ini.
                             </p>
                             @if ($kelasWali)
-                                <div class="alert alert-primary mb-0" role="alert">
-                                    Anda juga wali kelas {{ $kelasWali->nama_lengkap }} tahun akademik {{ $kelasWali->tahunAkademik?->nama ?? '-' }}.
+                                <div class="alert alert-primary mb-0 d-flex justify-content-between align-items-center flex-wrap gap-2" role="alert">
+                                    <div>
+                                        <i class="bx bx-user-pin me-1"></i> Anda juga bertugas sebagai <strong>Wali Kelas {{ $kelasWali->nama_lengkap }}</strong>.
+                                    </div>
+                                    <a href="{{ route('wali-kelas.dashboard') }}" class="btn btn-sm btn-primary">
+                                        Buka Dashboard Wali <i class="bx bx-right-arrow-alt ms-1"></i>
+                                    </a>
                                 </div>
                             @endif
                         </div>
@@ -36,12 +41,17 @@
         <div class="col-lg-4 col-md-4 order-1">
             <div class="card">
                 <div class="card-body">
-                    <div class="avatar flex-shrink-0 mb-3">
-                        <span class="avatar-initial rounded bg-label-success"><i class="bx bx-book-reader"></i></span>
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <div class="avatar flex-shrink-0">
+                            <span class="avatar-initial rounded bg-label-success"><i class="bx bx-book-reader"></i></span>
+                        </div>
+                        @if ($kelasWali)
+                            <a href="{{ route('wali-kelas.dashboard') }}" class="btn btn-xs btn-outline-primary">Portal Wali</a>
+                        @endif
                     </div>
-                    <span class="fw-semibold d-block mb-1">Role Aktif</span>
-                    <h3 class="card-title mb-2">{{ $kelasWali ? 'Guru & Wali Kelas' : 'Guru' }}</h3>
-                    <small class="text-muted">{{ $kelasWali ? $kelasWali->nama_lengkap : 'Akses pembelajaran' }}</small>
+                    <span class="fw-semibold d-block mb-1">Peran Anda</span>
+                    <h3 class="card-title mb-2">{{ $kelasWali ? 'Guru & Wali Kelas' : 'Guru Pengampu' }}</h3>
+                    <small class="text-muted">{{ $kelasWali ? 'Membina Kelas ' . $kelasWali->nama_lengkap : 'Akses pembelajaran aktif' }}</small>
                 </div>
             </div>
         </div>
