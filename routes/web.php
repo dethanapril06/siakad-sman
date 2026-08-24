@@ -12,6 +12,7 @@ use App\Http\Controllers\Master\KelasController;
 use App\Http\Controllers\Master\MataPelajaranController;
 use App\Http\Controllers\Master\PegawaiTuController;
 use App\Http\Controllers\Master\RuanganController;
+use App\Http\Controllers\Master\SekolahController;
 use App\Http\Controllers\Master\SemesterController;
 use App\Http\Controllers\Master\SiswaController;
 use App\Http\Controllers\Master\TahunAkademikController;
@@ -174,6 +175,15 @@ Route::middleware('auth')->group(function () {
                     'user/{user}/reset-password',
                     [UserController::class, 'resetPassword']
                 )->name('user.reset-password');
+
+                Route::get(
+                    'pengaturan-sekolah',
+                    [SekolahController::class, 'edit']
+                )->name('sekolah.edit');
+                Route::put(
+                    'pengaturan-sekolah',
+                    [SekolahController::class, 'update']
+                )->name('sekolah.update');
             });
         
         Route::prefix('akademik')
@@ -582,6 +592,11 @@ Route::middleware('auth')->group(function () {
                         'index',
                         'show',
                     ]);
+
+                    Route::get(
+                        'pengaturan-sekolah',
+                        [SekolahController::class, 'edit']
+                    )->name('sekolah.edit');
                 });
 
             Route::prefix('akademik')

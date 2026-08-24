@@ -206,11 +206,18 @@
     <div class="rapor-page">
         {{-- KOP SURAT RESMI --}}
         <div class="kop-surat">
-            <h4>PEMERINTAH PROVINSI DAERAH</h4>
-            <h4>DINAS PENDIDIKAN DAN KEBUDAYAAN</h4>
-            <h2>SMA NEGERI SIADKAD</h2>
-            <p>Jl. Pendidikan No. 123, Telepon: (021) 1234567, Kode Pos: 12345</p>
-            <p>Website: www.sman-siakad.sch.id | Email: info@sman-siakad.sch.id</p>
+            <div style="display: flex; align-items: center; justify-content: center; gap: 15px; margin-bottom: 6px;">
+                @if ($sekolahSetting->logo)
+                    <img src="{{ asset('storage/' . $sekolahSetting->logo) }}" alt="Logo" style="height: 65px; object-fit: contain;">
+                @endif
+                <div>
+                    <h4>{{ $sekolahSetting->nama_instansi }}</h4>
+                    <h4>{{ $sekolahSetting->nama_dinas }}</h4>
+                    <h2>{{ $sekolahSetting->nama_sekolah }}</h2>
+                </div>
+            </div>
+            <p>{{ $sekolahSetting->alamat }} | NPSN: {{ $sekolahSetting->npsn ?? '-' }} | Telepon: {{ $sekolahSetting->telepon ?? '-' }}</p>
+            <p>Website: {{ $sekolahSetting->website ?? '-' }} | Email: {{ $sekolahSetting->email ?? '-' }}</p>
         </div>
 
         {{-- JUDUL RAPOR --}}
@@ -353,11 +360,11 @@
                 <td>
                     Mengetahui,<br>Kepala Sekolah
                     <div class="ttd-space"></div>
-                    <strong>{{ $kepalaSekolah?->nama ?? 'Nama Kepala Sekolah, M.Pd' }}</strong><br>
-                    <small>NIP. {{ $kepalaSekolah?->nip ?? '........................' }}</small>
+                    <strong>{{ $sekolahSetting->kepala_sekolah_nama }}</strong><br>
+                    <small>NIP. {{ $sekolahSetting->kepala_sekolah_nip ?? '........................' }}</small>
                 </td>
                 <td>
-                    Tempat, {{ $semester?->tanggal_rapor ? $semester->tanggal_rapor->translatedFormat('d F Y') : \Carbon\Carbon::now()->translatedFormat('d F Y') }}<br>
+                    {{ $sekolahSetting->kepala_sekolah_ttd_lokasi ?? 'Kupang' }}, {{ $semester?->tanggal_rapor ? $semester->tanggal_rapor->translatedFormat('d F Y') : \Carbon\Carbon::now()->translatedFormat('d F Y') }}<br>
                     Wali Kelas
                     <div class="ttd-space"></div>
                     <strong>{{ $kelasAkademik?->guru?->nama ?? 'Nama Wali Kelas' }}</strong><br>

@@ -63,10 +63,17 @@
 
     <div class="report-page">
         <div class="kop-surat">
-            <h4>PEMERINTAH PROVINSI DAERAH</h4>
-            <h4>DINAS PENDIDIKAN DAN KEBUDAYAAN</h4>
-            <h2>SMA NEGERI SIADKAD</h2>
-            <p>Jl. Pendidikan No. 123, Telepon: (021) 1234567 | Website: www.sman-siakad.sch.id</p>
+            <div style="display: flex; align-items: center; justify-content: center; gap: 15px; margin-bottom: 5px;">
+                @if ($sekolahSetting->logo)
+                    <img src="{{ asset('storage/' . $sekolahSetting->logo) }}" alt="Logo" style="height: 60px; object-fit: contain;">
+                @endif
+                <div>
+                    <h4>{{ $sekolahSetting->nama_instansi }}</h4>
+                    <h4>{{ $sekolahSetting->nama_dinas }}</h4>
+                    <h2>{{ $sekolahSetting->nama_sekolah }}</h2>
+                </div>
+            </div>
+            <p>{{ $sekolahSetting->alamat }} | Telepon: {{ $sekolahSetting->telepon ?? '-' }} | Website: {{ $sekolahSetting->website ?? '-' }}</p>
         </div>
 
         <div class="report-title">
@@ -137,15 +144,15 @@
                 <td>
                     Mengetahui,<br>Kepala Sekolah
                     <div class="ttd-space"></div>
-                    <strong>{{ $kepalaSekolah?->nama ?? 'Nama Kepala Sekolah, M.Pd' }}</strong><br>
-                    <small>NIP. {{ $kepalaSekolah?->nip ?? '........................' }}</small>
+                    <strong>{{ $sekolahSetting->kepala_sekolah_nama }}</strong><br>
+                    <small>NIP. {{ $sekolahSetting->kepala_sekolah_nip ?? '........................' }}</small>
                 </td>
                 <td>
-                    Tanggal Cetak: {{ \Carbon\Carbon::now()->translatedFormat('d F Y') }}<br>
+                    {{ $sekolahSetting->kepala_sekolah_ttd_lokasi ?? 'Kupang' }}, {{ \Carbon\Carbon::now()->translatedFormat('d F Y') }}<br>
                     Petugas / Bagian Kesiswaan
                     <div class="ttd-space"></div>
                     <strong>{{ auth()->user()->name }}</strong><br>
-                    <small>SIAKAD SMAN</small>
+                    <small>{{ $sekolahSetting->nama_sekolah }}</small>
                 </td>
             </tr>
         </table>

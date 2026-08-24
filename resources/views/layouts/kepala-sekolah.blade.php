@@ -25,6 +25,11 @@
             'icon' => 'bx-data',
             'children' => [
                 [
+                    'label' => 'Pengaturan Sekolah & Kop',
+                    'route' => 'kepala-sekolah.master.sekolah.edit',
+                    'active' => 'kepala-sekolah.master.sekolah.*',
+                ],
+                [
                     'label' => 'Tahun Akademik',
                     'route' => 'kepala-sekolah.master.tahun-akademik.index',
                     'active' => 'kepala-sekolah.master.tahun-akademik.*',

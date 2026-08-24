@@ -42,6 +42,11 @@
             'icon' => 'bx-data',
             'children' => [
                 [
+                    'label' => 'Pengaturan Sekolah & Kop',
+                    'route' => 'pegawai-tu.master.sekolah.edit',
+                    'active' => 'pegawai-tu.master.sekolah.*',
+                ],
+                [
                     'label' => 'Jurusan',
                     'route' => 'pegawai-tu.master.jurusan.index',
                     'active' => 'pegawai-tu.master.jurusan.*',
