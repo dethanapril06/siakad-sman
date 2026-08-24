@@ -39,13 +39,19 @@
     </style>
 </head>
 <body>
+@php
+    $backRoute = auth()->user()?->isKepalaSekolah()
+        ? route('kepala-sekolah.laporan.jadwal-guru.index')
+        : route('pegawai-tu.laporan.jadwal-guru.index');
+@endphp
+
     <div class="no-print-bar">
         <div>
             <strong>Laporan Jadwal Mengajar Guru</strong>
             <div style="font-size: 8.5pt; color: #777;">Format Siap Cetak</div>
         </div>
         <div style="display: flex; gap: 8px;">
-            <a href="javascript:history.back()" class="btn-back">Kembali</a>
+            <a href="{{ $backRoute }}" onclick="handleBack(event, '{{ $backRoute }}')" class="btn-back">Kembali</a>
             <button onclick="window.print()" class="btn-print">
                 <i class="bx bx-printer"></i> Cetak / Simpan PDF
             </button>
@@ -123,5 +129,17 @@
             </tr>
         </table>
     </div>
+    <script>
+        function handleBack(event, fallbackUrl) {
+            if (window.opener || window.history.length <= 1) {
+                window.close();
+            }
+            if (window.history.length > 1 && document.referrer && document.referrer.includes(window.location.host)) {
+                event.preventDefault();
+                window.history.back();
+                return;
+            }
+        }
+    </script>
 </body>
 </html>

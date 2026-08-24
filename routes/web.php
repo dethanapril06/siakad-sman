@@ -162,7 +162,9 @@ Route::middleware('auth')->group(function () {
                 Route::resource(
                     'kelas',
                     KelasController::class
-                );
+                )->parameters([
+                    'kelas' => 'kelas',
+                ]);
 
                 Route::resource(
                     'user',
@@ -574,7 +576,9 @@ Route::middleware('auth')->group(function () {
                     Route::resource(
                         'kelas',
                         KelasController::class
-                    )->only([
+                    )->parameters([
+                        'kelas' => 'kelas',
+                    ])->only([
                         'index',
                         'show',
                     ]);

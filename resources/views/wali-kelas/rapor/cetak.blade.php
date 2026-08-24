@@ -184,13 +184,19 @@
     </style>
 </head>
 <body>
+@php
+    $backRoute = auth()->user()?->isSiswa()
+        ? route('siswa.rapor.index')
+        : route('wali-kelas.rapor.index');
+@endphp
+
     <div class="no-print-bar">
         <div>
             <strong>Pratinjau Lembar Rapor Siswa</strong>
             <div style="font-size: 8.5pt; color: #777;">Format Siap Cetak (A4 Standard)</div>
         </div>
         <div style="display: flex; gap: 8px;">
-            <a href="javascript:history.back()" class="btn-back">Kembali</a>
+            <a href="{{ $backRoute }}" onclick="handleBack(event, '{{ $backRoute }}')" class="btn-back">Kembali</a>
             <button onclick="window.print()" class="btn-print">
                 <i class="bx bx-printer"></i> Cetak / Simpan PDF
             </button>
@@ -360,5 +366,17 @@
             </tr>
         </table>
     </div>
+    <script>
+        function handleBack(event, fallbackUrl) {
+            if (window.opener || window.history.length <= 1) {
+                window.close();
+            }
+            if (window.history.length > 1 && document.referrer && document.referrer.includes(window.location.host)) {
+                event.preventDefault();
+                window.history.back();
+                return;
+            }
+        }
+    </script>
 </body>
 </html>

@@ -12,59 +12,31 @@ class KelasAkademikSeeder extends Seeder
 {
     public function run(): void
     {
-        $tahunAkademik = TahunAkademik::where(
-            'nama',
-            '2026/2027'
-        )->firstOrFail();
+        $tahunAkademik = TahunAkademik::where('nama', '2026/2027')->firstOrFail();
 
-        $guruBudi = Guru::where(
-            'nip',
-            '198501012010011001'
-        )->firstOrFail();
+        // Ambil guru yang bukan kepala sekolah
+        $gurus = Guru::whereHas('user.role', fn ($q) => $q->where('name', 'guru'))
+            ->where('status', 'aktif')
+            ->orderBy('id')
+            ->get();
 
-        $guruMaria = Guru::where(
-            'nip',
-            '198702022011012002'
-        )->firstOrFail();
+        $kelasList = Kelas::with('jurusan')
+            ->orderByRaw("CASE tingkat WHEN 'X' THEN 1 WHEN 'XI' THEN 2 WHEN 'XII' THEN 3 ELSE 4 END")
+            ->orderBy('jurusan_id')
+            ->orderBy('nama')
+            ->get();
 
-        $guruAndreas = Guru::where(
-            'nip',
-            '198903032012011003'
-        )->firstOrFail();
-
-        $kelas = Kelas::with('jurusan')->get();
-
-        foreach ($kelas as $item) {
-            $waliKelasId = null;
-
-            if (
-                $item->tingkat === 'X'
-                && $item->jurusan?->kode === 'IPA'
-            ) {
-                $waliKelasId = $guruBudi->id;
-            }
-
-            if (
-                $item->tingkat === 'XI'
-                && $item->jurusan?->kode === 'IPA'
-            ) {
-                $waliKelasId = $guruMaria->id;
-            }
-
-            if (
-                $item->tingkat === 'X'
-                && $item->jurusan?->kode === 'IPS'
-            ) {
-                $waliKelasId = $guruAndreas->id;
-            }
+        foreach ($kelasList as $index => $kelas) {
+            // Pasangkan wali kelas unik untuk masing-masing kelas
+            $waliKelas = $gurus->get($index);
 
             KelasAkademik::updateOrCreate(
                 [
-                    'kelas_id' => $item->id,
+                    'kelas_id' => $kelas->id,
                     'tahun_akademik_id' => $tahunAkademik->id,
                 ],
                 [
-                    'wali_kelas_id' => $waliKelasId,
+                    'wali_kelas_id' => $waliKelas?->id,
                 ]
             );
         }

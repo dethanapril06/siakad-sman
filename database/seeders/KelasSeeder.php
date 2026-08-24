@@ -10,64 +10,28 @@ class KelasSeeder extends Seeder
 {
     public function run(): void
     {
-        $ipa = Jurusan::where('kode', 'IPA')
-            ->firstOrFail();
+        $ipa = Jurusan::where('kode', 'IPA')->firstOrFail();
+        $ips = Jurusan::where('kode', 'IPS')->firstOrFail();
 
-        $ips = Jurusan::where('kode', 'IPS')
-            ->firstOrFail();
+        $tingkats = ['X', 'XI', 'XII'];
+        $jurusans = [$ipa, $ips];
+        $rombels = ['1', '2'];
 
-        $mat = Jurusan::where('kode', 'MAT')
-            ->firstOrFail();
-
-        $kelas = [
-            [
-                'jurusan_id' => $ipa->id,
-                'tingkat' => 'X',
-                'nama' => '1',
-            ],
-            [
-                'jurusan_id' => $ipa->id,
-                'tingkat' => 'XI',
-                'nama' => '1',
-            ],
-            [
-                'jurusan_id' => $ipa->id,
-                'tingkat' => 'XII',
-                'nama' => '1',
-            ],
-            [
-                'jurusan_id' => $ips->id,
-                'tingkat' => 'X',
-                'nama' => '1',
-            ],
-            [
-                'jurusan_id' => $ips->id,
-                'tingkat' => 'XI',
-                'nama' => '1',
-            ],
-            [
-                'jurusan_id' => $ips->id,
-                'tingkat' => 'XII',
-                'nama' => '1',
-            ],
-            [
-                'jurusan_id' => $mat->id,
-                'tingkat' => 'X',
-                'nama' => '1',
-            ],
-        ];
-
-        foreach ($kelas as $item) {
-            Kelas::updateOrCreate(
-                [
-                    'jurusan_id' => $item['jurusan_id'],
-                    'tingkat' => $item['tingkat'],
-                    'nama' => $item['nama'],
-                ],
-                [
-                    'is_active' => true,
-                ]
-            );
+        foreach ($tingkats as $tingkat) {
+            foreach ($jurusans as $jurusan) {
+                foreach ($rombels as $rombel) {
+                    Kelas::updateOrCreate(
+                        [
+                            'jurusan_id' => $jurusan->id,
+                            'tingkat' => $tingkat,
+                            'nama' => $rombel,
+                        ],
+                        [
+                            'is_active' => true,
+                        ]
+                    );
+                }
+            }
         }
     }
 }

@@ -24,11 +24,11 @@
                 </div>
                 <div class="col-md-4">
                     <small class="text-muted d-block">Sudah Lengkap</small>
-                    <h4 class="mb-0">{{ $pertemuans->filter->sudah_diabsen->count() }}</h4>
+                    <h4 class="mb-0">{{ $pertemuans->filter(fn ($pertemuan) => $pertemuan->sudah_diabsen)->count() }}</h4>
                 </div>
                 <div class="col-md-4">
                     <small class="text-muted d-block">Belum Lengkap</small>
-                    <h4 class="mb-0">{{ $pertemuans->reject->sudah_diabsen->count() }}</h4>
+                    <h4 class="mb-0">{{ $pertemuans->reject(fn ($pertemuan) => $pertemuan->sudah_diabsen)->count() }}</h4>
                 </div>
             </div>
         </div>
