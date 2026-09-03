@@ -96,10 +96,11 @@
             <div class="mt-3">
                 <small class="text-muted d-block mb-1">Bobot nilai akhir</small>
                 <div class="d-flex flex-wrap gap-2">
-                    <span class="badge bg-label-secondary">Harian {{ $bobot['NH'] }}%</span>
-                    <span class="badge bg-label-secondary">Tugas {{ $bobot['TUGAS'] }}%</span>
-                    <span class="badge bg-label-secondary">UTS {{ $bobot['UTS'] }}%</span>
-                    <span class="badge bg-label-secondary">UAS {{ $bobot['UAS'] }}%</span>
+                    <span class="badge bg-label-secondary">Harian {{ $bobot['NH'] ?? 20 }}%</span>
+                    <span class="badge bg-label-secondary">Tugas {{ $bobot['TUGAS'] ?? 20 }}%</span>
+                    <span class="badge bg-label-secondary">Keterampilan {{ $bobot['KTR'] ?? 20 }}%</span>
+                    <span class="badge bg-label-secondary">UTS {{ $bobot['UTS'] ?? 20 }}%</span>
+                    <span class="badge bg-label-secondary">UAS {{ $bobot['UAS'] ?? 20 }}%</span>
                 </div>
             </div>
         </div>

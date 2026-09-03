@@ -428,7 +428,7 @@ class NilaiController extends Controller
             ->orderBy('nama')
             ->get();
 
-        $bobot = self::BOBOT;
+        $bobot = $this->getBobot();
         $kkm = self::KKM;
 
         return view(
