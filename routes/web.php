@@ -6,6 +6,7 @@ use App\Http\Controllers\Akademik\KelasAkademikController;
 use App\Http\Controllers\Akademik\MengajarController;
 use App\Http\Controllers\Auth\AuthController;
 use App\Http\Controllers\DashboardController;
+use App\Http\Controllers\Master\BobotNilaiController;
 use App\Http\Controllers\Master\GuruController;
 use App\Http\Controllers\Master\JurusanController;
 use App\Http\Controllers\Master\KelasController;
@@ -23,6 +24,8 @@ use Illuminate\Support\Facades\Route;
 // Guru
 use App\Http\Controllers\Guru\AbsensiController as GuruAbsensiController;
 use App\Http\Controllers\Guru\JadwalController as GuruJadwalController;
+use App\Http\Controllers\Guru\LaporanAbsensiController as GuruLaporanAbsensiController;
+use App\Http\Controllers\Guru\LaporanKeterlambatanController as GuruLaporanKeterlambatanController;
 use App\Http\Controllers\Guru\LaporanNilaiController as GuruLaporanNilaiController;
 use App\Http\Controllers\Guru\MengajarController as GuruMengajarController;
 use App\Http\Controllers\Guru\NilaiController as GuruNilaiController;
@@ -184,6 +187,15 @@ Route::middleware('auth')->group(function () {
                     'pengaturan-sekolah',
                     [SekolahController::class, 'update']
                 )->name('sekolah.update');
+
+                Route::get(
+                    'bobot-nilai',
+                    [BobotNilaiController::class, 'index']
+                )->name('bobot-nilai.index');
+                Route::put(
+                    'bobot-nilai',
+                    [BobotNilaiController::class, 'update']
+                )->name('bobot-nilai.update');
             });
         
         Route::prefix('akademik')
@@ -392,10 +404,51 @@ Route::middleware('auth')->group(function () {
                 ]
             )->name('nilai.update');
 
+            Route::get(
+                '/mengajar/{mengajar}/siswa/{siswa}/nilai',
+                [
+                    GuruNilaiController::class,
+                    'editSiswa',
+                ]
+            )->name('nilai.siswa');
+
+            Route::put(
+                '/mengajar/{mengajar}/siswa/{siswa}/nilai',
+                [
+                    GuruNilaiController::class,
+                    'updateSiswa',
+                ]
+            )->name('nilai.siswa.update');
+
             Route::get('/laporan-nilai', [
                 GuruLaporanNilaiController::class,
                 'index',
             ])->name('laporan-nilai.index');
+
+            Route::get('/laporan-nilai/cetak', [
+                GuruLaporanNilaiController::class,
+                'cetak',
+            ])->name('laporan-nilai.cetak');
+
+            Route::get('/laporan-absensi', [
+                GuruLaporanAbsensiController::class,
+                'index',
+            ])->name('laporan-absensi.index');
+
+            Route::get('/laporan-absensi/cetak', [
+                GuruLaporanAbsensiController::class,
+                'cetak',
+            ])->name('laporan-absensi.cetak');
+
+            Route::get('/laporan-keterlambatan', [
+                GuruLaporanKeterlambatanController::class,
+                'index',
+            ])->name('laporan-keterlambatan.index');
+
+            Route::get('/laporan-keterlambatan/cetak', [
+                GuruLaporanKeterlambatanController::class,
+                'cetak',
+            ])->name('laporan-keterlambatan.cetak');
         });
     
     Route::middleware([
@@ -597,6 +650,11 @@ Route::middleware('auth')->group(function () {
                         'pengaturan-sekolah',
                         [SekolahController::class, 'edit']
                     )->name('sekolah.edit');
+
+                    Route::get(
+                        'bobot-nilai',
+                        [BobotNilaiController::class, 'index']
+                    )->name('bobot-nilai.index');
                 });
 
             Route::prefix('akademik')

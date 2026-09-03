@@ -64,6 +64,18 @@
             'active' => 'guru.laporan-nilai.*',
             'icon' => 'bx-spreadsheet',
         ],
+        [
+            'label' => 'Laporan Absensi',
+            'route' => 'guru.laporan-absensi.index',
+            'active' => 'guru.laporan-absensi.*',
+            'icon' => 'bx-calendar-check',
+        ],
+        [
+            'label' => 'Laporan Keterlambatan',
+            'route' => 'guru.laporan-keterlambatan.index',
+            'active' => 'guru.laporan-keterlambatan.*',
+            'icon' => 'bx-time-five',
+        ],
     ];
 
     if ($isWaliKelasAktif) {

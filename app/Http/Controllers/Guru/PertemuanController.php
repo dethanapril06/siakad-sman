@@ -14,6 +14,8 @@ use Illuminate\View\View;
 
 class PertemuanController extends Controller
 {
+    public const MAX_PERTEMUAN = 16;
+
     public function index(Request $request): View
     {
         $guru = Auth::user()->guru;
@@ -122,7 +124,7 @@ class PertemuanController extends Controller
                 'nullable',
                 'integer',
                 'min:1',
-                'max:100',
+                'max:' . self::MAX_PERTEMUAN,
             ],
             'tanggal' => [
                 'required',
@@ -141,6 +143,8 @@ class PertemuanController extends Controller
                 'nullable',
                 'string',
             ],
+        ], [
+            'pertemuan_ke.max' => 'Nomor pertemuan tidak boleh melebihi ' . self::MAX_PERTEMUAN . ' pertemuan per semester.',
         ]);
 
         $mengajar = $this->getMengajarMilikGuru(
@@ -197,6 +201,13 @@ class PertemuanController extends Controller
             'jadwals.ruangan',
         ])
             ->where('guru_id', $guru->id)
+            ->whereHas(
+                'semester',
+                fn ($query) => $query->where(
+                    'is_active',
+                    true
+                )
+            )
             ->get();
 
         $nextPertemuanOptions = $this->getNextPertemuanOptions(
@@ -229,7 +240,7 @@ class PertemuanController extends Controller
                 'nullable',
                 'integer',
                 'min:1',
-                'max:100',
+                'max:' . self::MAX_PERTEMUAN,
             ],
             'tanggal' => [
                 'required',
@@ -248,6 +259,8 @@ class PertemuanController extends Controller
                 'nullable',
                 'string',
             ],
+        ], [
+            'pertemuan_ke.max' => 'Nomor pertemuan tidak boleh melebihi ' . self::MAX_PERTEMUAN . ' pertemuan per semester.',
         ]);
 
         $mengajar = $this->getMengajarMilikGuru(
@@ -415,7 +428,7 @@ class PertemuanController extends Controller
         ?Pertemuan $pertemuan = null
     ): array {
         if (empty($validated['pertemuan_ke'])) {
-            $validated['pertemuan_ke'] = Pertemuan::where(
+            $next = Pertemuan::where(
                 'mengajar_id',
                 $mengajar->id
             )
@@ -426,6 +439,14 @@ class PertemuanController extends Controller
                     )
                 )
                 ->max('pertemuan_ke') + 1;
+
+            if ($next > self::MAX_PERTEMUAN) {
+                throw ValidationException::withMessages([
+                    'pertemuan_ke' => 'Jumlah pertemuan untuk kelas dan mata pelajaran ini telah mencapai batas maksimal (' . self::MAX_PERTEMUAN . ' pertemuan per semester).',
+                ]);
+            }
+
+            $validated['pertemuan_ke'] = $next;
         }
 
         if (

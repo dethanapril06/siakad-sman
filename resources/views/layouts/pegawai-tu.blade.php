@@ -66,6 +66,11 @@
                     'route' => 'pegawai-tu.master.kelas.index',
                     'active' => 'pegawai-tu.master.kelas.*',
                 ],
+                [
+                    'label' => 'Bobot Nilai',
+                    'route' => 'pegawai-tu.master.bobot-nilai.index',
+                    'active' => 'pegawai-tu.master.bobot-nilai.*',
+                ],
             ],
         ],
         [

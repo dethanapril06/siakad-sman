@@ -92,12 +92,13 @@
     <div class="card mb-4">
         <h5 class="card-header">Anggota Kelas</h5>
         <div class="table-responsive text-nowrap">
-            <table class="table">
+            <table class="table table-hover">
                 <thead>
                     <tr>
                         <th>NIS</th>
                         <th>Nama Siswa</th>
                         <th>Status</th>
+                        <th style="width: 140px;" class="text-center">Aksi</th>
                     </tr>
                 </thead>
                 <tbody class="table-border-bottom-0">
@@ -105,11 +106,24 @@
                         <tr>
                             <td><strong>{{ $anggota->siswa?->nis ?? '-' }}</strong></td>
                             <td>{{ $anggota->siswa?->nama ?? '-' }}</td>
-                            <td>{{ ucfirst($anggota->siswa?->status ?? '-') }}</td>
+                            <td>
+                                <span class="badge {{ ($anggota->siswa?->status ?? '') === 'aktif' ? 'bg-label-success' : 'bg-label-secondary' }}">
+                                    {{ ucfirst($anggota->siswa?->status ?? '-') }}
+                                </span>
+                            </td>
+                            <td class="text-center">
+                                @if (($anggota->siswa?->status ?? '') === 'aktif')
+                                    <a href="{{ route('guru.nilai.siswa', ['mengajar' => $mengajar->id, 'siswa' => $anggota->siswa_id]) }}" class="btn btn-sm btn-primary">
+                                        <i class="bx bx-edit-alt me-1"></i> Input Nilai
+                                    </a>
+                                @else
+                                    <span class="text-muted small">-</span>
+                                @endif
+                            </td>
                         </tr>
                     @empty
                         <tr>
-                            <td colspan="3" class="text-center py-4">Belum ada anggota kelas.</td>
+                            <td colspan="4" class="text-center py-4">Belum ada anggota kelas.</td>
                         </tr>
                     @endforelse
                 </tbody>

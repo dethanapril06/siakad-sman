@@ -56,12 +56,13 @@
             </div>
 
             <div class="table-responsive text-nowrap">
-                <table class="table">
+                <table class="table table-hover">
                     <thead>
                         <tr>
-                            <th>NIS</th>
+                            <th style="width: 120px;">NIS</th>
                             <th>Nama Siswa</th>
-                            <th>Status</th>
+                            <th style="width: 180px;">Status Kehadiran</th>
+                            <th style="width: 150px;">Terlambat?</th>
                             <th>Keterangan</th>
                         </tr>
                     </thead>
@@ -70,7 +71,9 @@
                             @php
                                 $siswa = $anggota->siswa;
                                 $absensi = $siswa ? $absensiExisting->get($siswa->id) : null;
-                                $statusValue = old("absensi.{$index}.status", $absensi?->status ?? 'hadir');
+                                $rawStatus = old("absensi.{$index}.status", $absensi?->status ?? 'hadir');
+                                $isTerlambat = $rawStatus === 'terlambat' || old("absensi.{$index}.is_terlambat") === '1';
+                                $displayStatus = $rawStatus === 'terlambat' ? 'hadir' : $rawStatus;
                             @endphp
                             <tr>
                                 <td>
@@ -81,17 +84,28 @@
                                 <td>
                                     <select
                                         name="absensi[{{ $index }}][status]"
-                                        class="form-select @error('absensi.' . $index . '.status') is-invalid @enderror"
+                                        class="form-select status-select @error('absensi.' . $index . '.status') is-invalid @enderror"
+                                        data-row="{{ $index }}"
                                     >
-                                        @foreach (['hadir', 'sakit', 'izin', 'alpa', 'terlambat'] as $status)
-                                            <option value="{{ $status }}" @selected($statusValue === $status)>
-                                                {{ ucfirst($status) }}
-                                            </option>
-                                        @endforeach
+                                        <option value="hadir" @selected($displayStatus === 'hadir')>Hadir</option>
+                                        <option value="sakit" @selected($displayStatus === 'sakit')>Sakit</option>
+                                        <option value="izin" @selected($displayStatus === 'izin')>Izin</option>
+                                        <option value="alpa" @selected($displayStatus === 'alpa')>Alpa</option>
                                     </select>
                                     @error('absensi.' . $index . '.status')
                                         <div class="invalid-feedback">{{ $message }}</div>
                                     @enderror
+                                </td>
+                                <td>
+                                    <select
+                                        name="absensi[{{ $index }}][is_terlambat]"
+                                        id="terlambat_{{ $index }}"
+                                        class="form-select terlambat-select"
+                                        @disabled($displayStatus !== 'hadir')
+                                    >
+                                        <option value="0" @selected(! $isTerlambat)>Tidak</option>
+                                        <option value="1" @selected($isTerlambat)>Ya (Terlambat)</option>
+                                    </select>
                                 </td>
                                 <td>
                                     <input
@@ -99,7 +113,7 @@
                                         name="absensi[{{ $index }}][keterangan]"
                                         class="form-control @error('absensi.' . $index . '.keterangan') is-invalid @enderror"
                                         value="{{ old("absensi.{$index}.keterangan", $absensi?->keterangan) }}"
-                                        placeholder="Opsional"
+                                        placeholder="Catatan / alasan (opsional)"
                                     />
                                     @error('absensi.' . $index . '.keterangan')
                                         <div class="invalid-feedback">{{ $message }}</div>
@@ -108,7 +122,7 @@
                             </tr>
                         @empty
                             <tr>
-                                <td colspan="4" class="text-center py-4">Anggota kelas belum tersedia.</td>
+                                <td colspan="5" class="text-center py-4">Anggota kelas belum tersedia.</td>
                             </tr>
                         @endforelse
                     </tbody>
@@ -116,4 +130,26 @@
             </div>
         </div>
     </form>
+
+    <script>
+    document.addEventListener('DOMContentLoaded', function () {
+        const statusSelects = document.querySelectorAll('.status-select');
+
+        statusSelects.forEach(select => {
+            select.addEventListener('change', function () {
+                const rowIndex = this.getAttribute('data-row');
+                const terlambatSelect = document.getElementById('terlambat_' + rowIndex);
+
+                if (terlambatSelect) {
+                    if (this.value === 'hadir') {
+                        terlambatSelect.disabled = false;
+                    } else {
+                        terlambatSelect.value = '0';
+                        terlambatSelect.disabled = true;
+                    }
+                }
+            });
+        });
+    });
+    </script>
 @endsection

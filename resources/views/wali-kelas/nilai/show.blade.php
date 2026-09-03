@@ -38,10 +38,11 @@
         <div class="card-body">
             <small class="text-muted d-block mb-1">Bobot nilai akhir</small>
             <div class="d-flex flex-wrap gap-2">
-                <span class="badge bg-label-secondary">Harian {{ $bobot['NH'] }}%</span>
-                <span class="badge bg-label-secondary">Tugas {{ $bobot['TUGAS'] }}%</span>
-                <span class="badge bg-label-secondary">UTS {{ $bobot['UTS'] }}%</span>
-                <span class="badge bg-label-secondary">UAS {{ $bobot['UAS'] }}%</span>
+                <span class="badge bg-label-secondary">Harian {{ $bobot['NH'] ?? 20 }}%</span>
+                <span class="badge bg-label-secondary">Tugas {{ $bobot['TUGAS'] ?? 20 }}%</span>
+                <span class="badge bg-label-secondary">Keterampilan {{ $bobot['KTR'] ?? 20 }}%</span>
+                <span class="badge bg-label-secondary">UTS {{ $bobot['UTS'] ?? 20 }}%</span>
+                <span class="badge bg-label-secondary">UAS {{ $bobot['UAS'] ?? 20 }}%</span>
                 <span class="badge bg-label-primary">KKM {{ $kkm }}</span>
             </div>
         </div>
@@ -50,12 +51,13 @@
     <div class="card">
         <h5 class="card-header">Nilai Akhir Mata Pelajaran</h5>
         <div class="table-responsive text-nowrap">
-            <table class="table">
+            <table class="table table-hover">
                 <thead>
                     <tr>
                         <th>Mata Pelajaran</th>
                         <th>Nilai Harian</th>
                         <th>Nilai Tugas</th>
+                        <th>Keterampilan</th>
                         <th>UTS</th>
                         <th>UAS</th>
                         <th>Nilai Akhir</th>
@@ -69,6 +71,7 @@
                             <td><strong>{{ $row['mata_pelajaran']->nama }}</strong></td>
                             <td>{{ $row['rekap']['nilai_harian'] !== null ? number_format($row['rekap']['nilai_harian'], 2) : '-' }}</td>
                             <td>{{ $row['rekap']['nilai_tugas'] !== null ? number_format($row['rekap']['nilai_tugas'], 2) : '-' }}</td>
+                            <td>{{ $row['rekap']['nilai_keterampilan'] !== null ? number_format($row['rekap']['nilai_keterampilan'], 2) : '-' }}</td>
                             <td>{{ $row['rekap']['nilai_uts'] !== null ? number_format($row['rekap']['nilai_uts'], 2) : '-' }}</td>
                             <td>{{ $row['rekap']['nilai_uas'] !== null ? number_format($row['rekap']['nilai_uas'], 2) : '-' }}</td>
                             <td><strong>{{ $row['rekap']['nilai_akhir'] !== null ? number_format($row['rekap']['nilai_akhir'], 2) : '-' }}</strong></td>
@@ -81,7 +84,7 @@
                         </tr>
                     @empty
                         <tr>
-                            <td colspan="8" class="text-center py-4">Data raport siswa belum tersedia.</td>
+                            <td colspan="9" class="text-center py-4">Data raport siswa belum tersedia.</td>
                         </tr>
                     @endforelse
                 </tbody>

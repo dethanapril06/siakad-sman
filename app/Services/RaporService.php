@@ -17,12 +17,18 @@ class RaporService
 {
     public const KKM = 75;
 
-    public const BOBOT = [
-        'NH' => 20,
-        'TUGAS' => 20,
-        'UTS' => 30,
-        'UAS' => 30,
-    ];
+    public function getBobot(): array
+    {
+        $bobotMap = \App\Models\JenisNilai::getBobotMap();
+
+        return ! empty($bobotMap) ? $bobotMap : [
+            'NH' => 20,
+            'TUGAS' => 20,
+            'KTR' => 20,
+            'UTS' => 20,
+            'UAS' => 20,
+        ];
+    }
 
     /**
      * Mengambil data rapor lengkap untuk 1 siswa pada semester tertentu.
@@ -48,30 +54,10 @@ class RaporService
         $kelasAkademik = $anggotaKelas?->kelasAkademik;
 
         if (! $kelasAkademik || ! $semester) {
-            return [
-                'siswa' => $siswa,
-                'kelasAkademik' => $kelasAkademik,
-                'semester' => $semester,
-                'mataPelajarans' => collect(),
-                'nilaiMapel' => collect(),
-                'rataRata' => null,
-                'totalNilai' => 0,
-                'peringkat' => null,
-                'totalSiswa' => 0,
-                'presensi' => [
-                    'hadir' => 0,
-                    'sakit' => 0,
-                    'izin' => 0,
-                    'alpa' => 0,
-                    'terlambat' => 0,
-                    'total' => 0,
-                ],
-                'catatanWali' => null,
-                'kepalaSekolah' => $this->getKepalaSekolah(),
-            ];
+            return [];
         }
 
-        // Mata pelajaran di kelas & semester ini
+        // Ambil semua mata pelajaran pada kelas ini
         $mataPelajarans = MataPelajaran::whereHas(
             'mengajars',
             fn ($query) => $query
@@ -81,7 +67,7 @@ class RaporService
             ->orderBy('nama')
             ->get();
 
-        // Nilai siswa
+        // Ambil semua nilai siswa pada semester & kelas ini
         $nilais = Nilai::with(['penilaian.jenisNilai', 'penilaian.mengajar'])
             ->where('siswa_id', $siswa->id)
             ->whereHas(
@@ -100,12 +86,14 @@ class RaporService
 
             $nilaiHarian = $this->averageByJenis($nilaiSiswaMapel, 'NH');
             $nilaiTugas = $this->averageByJenis($nilaiSiswaMapel, 'TUGAS');
+            $nilaiKeterampilan = $this->averageByJenis($nilaiSiswaMapel, 'KTR');
             $nilaiUts = $this->averageByJenis($nilaiSiswaMapel, 'UTS');
             $nilaiUas = $this->averageByJenis($nilaiSiswaMapel, 'UAS');
 
             $nilaiAkhir = $this->calculateWeightedAverage([
                 'NH' => $nilaiHarian,
                 'TUGAS' => $nilaiTugas,
+                'KTR' => $nilaiKeterampilan,
                 'UTS' => $nilaiUts,
                 'UAS' => $nilaiUas,
             ]);
@@ -118,6 +106,7 @@ class RaporService
                 'kkm' => self::KKM,
                 'nilai_harian' => $nilaiHarian,
                 'nilai_tugas' => $nilaiTugas,
+                'nilai_keterampilan' => $nilaiKeterampilan,
                 'nilai_uts' => $nilaiUts,
                 'nilai_uas' => $nilaiUas,
                 'nilai_akhir' => $nilaiAkhir,
@@ -216,12 +205,14 @@ class RaporService
 
                 $nilaiHarian = $this->averageByJenis($nilaiSiswaMapel, 'NH');
                 $nilaiTugas = $this->averageByJenis($nilaiSiswaMapel, 'TUGAS');
+                $nilaiKeterampilan = $this->averageByJenis($nilaiSiswaMapel, 'KTR');
                 $nilaiUts = $this->averageByJenis($nilaiSiswaMapel, 'UTS');
                 $nilaiUas = $this->averageByJenis($nilaiSiswaMapel, 'UAS');
 
                 $nilaiAkhir = $this->calculateWeightedAverage([
                     'NH' => $nilaiHarian,
                     'TUGAS' => $nilaiTugas,
+                    'KTR' => $nilaiKeterampilan,
                     'UTS' => $nilaiUts,
                     'UAS' => $nilaiUas,
                 ]);
@@ -300,11 +291,12 @@ class RaporService
 
     private function calculateWeightedAverage(array $nilai): ?float
     {
+        $bobotMap = $this->getBobot();
         $totalBobot = 0;
         $totalNilai = 0;
 
-        foreach (self::BOBOT as $kode => $bobot) {
-            if ($nilai[$kode] === null) {
+        foreach ($bobotMap as $kode => $bobot) {
+            if (! isset($nilai[$kode]) || $nilai[$kode] === null) {
                 continue;
             }
 

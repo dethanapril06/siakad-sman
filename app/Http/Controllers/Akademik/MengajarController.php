@@ -115,13 +115,28 @@ class MengajarController extends Controller
             ->orderBy('nama')
             ->get();
 
+        $existingPenugasan = Mengajar::with('guru:id,nama')
+            ->select('id', 'semester_id', 'kelas_akademik_id', 'mata_pelajaran_id', 'guru_id')
+            ->get()
+            ->map(fn ($item) => [
+                'id' => $item->id,
+                'semester_id' => $item->semester_id,
+                'kelas_akademik_id' => $item->kelas_akademik_id,
+                'mata_pelajaran_id' => $item->mata_pelajaran_id,
+                'guru_nama' => $item->guru?->nama,
+            ]);
+
+        $activeSemesterId = Semester::aktif()->value('id');
+
         return view(
             'akademik.mengajar.create',
             compact(
                 'semesters',
                 'gurus',
                 'kelasAkademiks',
-                'mataPelajarans'
+                'mataPelajarans',
+                'existingPenugasan',
+                'activeSemesterId'
             )
         );
     }
@@ -195,6 +210,19 @@ class MengajarController extends Controller
             ->orderBy('nama')
             ->get();
 
+        $existingPenugasan = Mengajar::with('guru:id,nama')
+            ->select('id', 'semester_id', 'kelas_akademik_id', 'mata_pelajaran_id', 'guru_id')
+            ->get()
+            ->map(fn ($item) => [
+                'id' => $item->id,
+                'semester_id' => $item->semester_id,
+                'kelas_akademik_id' => $item->kelas_akademik_id,
+                'mata_pelajaran_id' => $item->mata_pelajaran_id,
+                'guru_nama' => $item->guru?->nama,
+            ]);
+
+        $activeSemesterId = Semester::aktif()->value('id');
+
         return view(
             'akademik.mengajar.edit',
             compact(
@@ -202,7 +230,9 @@ class MengajarController extends Controller
                 'semesters',
                 'gurus',
                 'kelasAkademiks',
-                'mataPelajarans'
+                'mataPelajarans',
+                'existingPenugasan',
+                'activeSemesterId'
             )
         );
     }
@@ -339,30 +369,21 @@ class MengajarController extends Controller
             ]);
         }
 
-        $query = Mengajar::where(
-            'semester_id',
-            $validated['semester_id']
-        )
-            ->where(
-                'guru_id',
-                $validated['guru_id']
-            )
-            ->where(
-                'kelas_akademik_id',
-                $validated['kelas_akademik_id']
-            )
-            ->where(
-                'mata_pelajaran_id',
-                $validated['mata_pelajaran_id']
-            );
+        $duplicateQuery = Mengajar::with('guru')
+            ->where('semester_id', $validated['semester_id'])
+            ->where('kelas_akademik_id', $validated['kelas_akademik_id'])
+            ->where('mata_pelajaran_id', $validated['mata_pelajaran_id']);
 
         if ($exceptMengajarId) {
-            $query->whereKeyNot($exceptMengajarId);
+            $duplicateQuery->whereKeyNot($exceptMengajarId);
         }
 
-        if ($query->exists()) {
+        $existing = $duplicateQuery->first();
+
+        if ($existing) {
+            $namaGuru = $existing->guru?->nama ?? 'guru lain';
             throw ValidationException::withMessages([
-                'mata_pelajaran_id' => 'Penugasan mengajar yang sama sudah tersedia.',
+                'mata_pelajaran_id' => "Mata pelajaran ini sudah ditugaskan kepada {$namaGuru} pada kelas dan semester yang dipilih.",
             ]);
         }
     }

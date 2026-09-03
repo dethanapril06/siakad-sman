@@ -62,20 +62,24 @@
 
 <div class="row">
     <div class="col-md-4 mb-3">
-        <label class="form-label" for="pertemuan_ke">Pertemuan Ke</label>
-        <input
-            type="number"
-            min="1"
-            max="100"
-            class="form-control @error('pertemuan_ke') is-invalid @enderror"
-            id="pertemuan_ke"
-            name="pertemuan_ke"
-            value="{{ $pertemuanKeValue }}"
-            placeholder="Otomatis"
-            readonly
-        />
+        <label class="form-label" for="pertemuan_ke">Pertemuan Ke (Maks. 16)</label>
+        <div class="input-group">
+            <input
+                type="number"
+                min="1"
+                max="16"
+                class="form-control @error('pertemuan_ke') is-invalid @enderror"
+                id="pertemuan_ke"
+                name="pertemuan_ke"
+                value="{{ $pertemuanKeValue }}"
+                placeholder="Otomatis"
+                readonly
+            />
+            <span class="input-group-text">/ 16</span>
+        </div>
+        <small class="text-muted">Maksimal 16 pertemuan per semester</small>
         @error('pertemuan_ke')
-            <div class="invalid-feedback">{{ $message }}</div>
+            <div class="invalid-feedback d-block">{{ $message }}</div>
         @enderror
     </div>
 

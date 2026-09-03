@@ -8,18 +8,25 @@
     <label class="form-label" for="mengajar_id">Penugasan Mengajar</label>
     <select class="form-select @error('mengajar_id') is-invalid @enderror" id="mengajar_id" name="mengajar_id" autofocus>
         <option value="">Pilih penugasan mengajar</option>
-        @foreach ($mengajars as $mengajar)
+        @forelse ($mengajars as $mengajar)
             <option value="{{ $mengajar->id }}" @selected((string) old('mengajar_id', $jadwal?->mengajar_id) === (string) $mengajar->id)>
                 {{ $mengajar->guru?->nama ?? '-' }} |
                 {{ $mengajar->mataPelajaran?->nama ?? '-' }} |
                 {{ $mengajar->kelasAkademik?->nama_lengkap ?? '-' }} |
-                {{ ucfirst($mengajar->semester?->nama ?? '-') }} - {{ $mengajar->semester?->tahunAkademik?->nama ?? '-' }}
+                {{ $mengajar->semester?->nama_lengkap ?? '-' }}
             </option>
-        @endforeach
+        @empty
+            <option value="" disabled>Semua penugasan mengajar untuk semester aktif sudah memiliki jadwal</option>
+        @endforelse
     </select>
     @error('mengajar_id')
         <div class="invalid-feedback">{{ $message }}</div>
     @enderror
+    @if ($mengajars->isEmpty() && ! $jadwal)
+        <small class="text-muted d-block mt-1">
+            <i class="bx bx-info-circle me-1"></i> Seluruh penugasan mengajar pada semester aktif telah memiliki jadwal pembelajaran.
+        </small>
+    @endif
 </div>
 
 <div class="mb-3">

@@ -43,4 +43,11 @@ class Semester extends Model
     {
         return $query->where('is_active', true);
     }
+
+    public function getNamaLengkapAttribute(): string
+    {
+        $label = ucfirst($this->nama) . ' - ' . ($this->tahunAkademik?->nama ?? '');
+
+        return $this->is_active ? "{$label} (Aktif)" : $label;
+    }
 }

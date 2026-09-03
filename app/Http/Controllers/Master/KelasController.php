@@ -94,26 +94,15 @@ class KelasController extends Controller
                 'required',
                 'string',
                 'max:100',
+                Rule::unique('kelas', 'nama')->where(fn ($query) => $query->where('tingkat', $request->tingkat)),
             ],
             'is_active' => [
                 'nullable',
                 'boolean',
             ],
+        ], [
+            'nama.unique' => 'Nama kelas ini sudah terdaftar pada tingkatan yang dipilih.',
         ]);
-
-        $exists = Kelas::where(
-            'jurusan_id',
-            $validated['jurusan_id'] ?? null
-        )
-            ->where('tingkat', $validated['tingkat'])
-            ->where('nama', $validated['nama'])
-            ->exists();
-
-        if ($exists) {
-            throw ValidationException::withMessages([
-                'nama' => 'Kelas dengan tingkat, jurusan, dan nama tersebut sudah tersedia.',
-            ]);
-        }
 
         Kelas::create([
             'jurusan_id' => $validated['jurusan_id'] ?? null,
@@ -170,27 +159,17 @@ class KelasController extends Controller
                 'required',
                 'string',
                 'max:100',
+                Rule::unique('kelas', 'nama')
+                    ->where(fn ($query) => $query->where('tingkat', $request->tingkat))
+                    ->ignore($kelas->id),
             ],
             'is_active' => [
                 'nullable',
                 'boolean',
             ],
+        ], [
+            'nama.unique' => 'Nama kelas ini sudah terdaftar pada tingkatan yang dipilih.',
         ]);
-
-        $exists = Kelas::where(
-            'jurusan_id',
-            $validated['jurusan_id'] ?? null
-        )
-            ->where('tingkat', $validated['tingkat'])
-            ->where('nama', $validated['nama'])
-            ->whereKeyNot($kelas->id)
-            ->exists();
-
-        if ($exists) {
-            throw ValidationException::withMessages([
-                'nama' => 'Kelas dengan tingkat, jurusan, dan nama tersebut sudah tersedia.',
-            ]);
-        }
 
         $kelas->update([
             'jurusan_id' => $validated['jurusan_id'] ?? null,

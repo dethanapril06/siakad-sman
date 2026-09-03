@@ -69,6 +69,11 @@
                     'route' => 'kepala-sekolah.master.kelas.index',
                     'active' => 'kepala-sekolah.master.kelas.*',
                 ],
+                [
+                    'label' => 'Bobot Nilai',
+                    'route' => 'kepala-sekolah.master.bobot-nilai.index',
+                    'active' => 'kepala-sekolah.master.bobot-nilai.*',
+                ],
             ],
         ],
         [

@@ -118,6 +118,7 @@ class JadwalController extends Controller
                     true
                 )
             )
+            ->whereDoesntHave('jadwals')
             ->get();
 
         $ruangans = Ruangan::aktif()
@@ -139,6 +140,7 @@ class JadwalController extends Controller
             'mengajar_id' => [
                 'required',
                 'exists:mengajars,id',
+                'unique:jadwals,mengajar_id',
             ],
             'ruangan_id' => [
                 'nullable',
@@ -166,6 +168,7 @@ class JadwalController extends Controller
             ],
         ], [
             'mengajar_id.required' => 'Penugasan mengajar wajib dipilih.',
+            'mengajar_id.unique' => 'Penugasan mengajar yang dipilih sudah memiliki jadwal pembelajaran.',
             'hari.required' => 'Hari wajib dipilih.',
             'jam_mulai.required' => 'Jam mulai wajib diisi.',
             'jam_selesai.required' => 'Jam selesai wajib diisi.',
@@ -207,7 +210,19 @@ class JadwalController extends Controller
             'guru',
             'kelasAkademik.kelas.jurusan',
             'mataPelajaran',
-        ])->get();
+        ])
+            ->whereHas(
+                'semester',
+                fn ($query) => $query->where(
+                    'is_active',
+                    true
+                )
+            )
+            ->where(function ($query) use ($jadwal) {
+                $query->whereDoesntHave('jadwals')
+                    ->orWhere('id', $jadwal->mengajar_id);
+            })
+            ->get();
 
         $ruangans = Ruangan::aktif()
             ->orderBy('nama')
@@ -231,6 +246,7 @@ class JadwalController extends Controller
             'mengajar_id' => [
                 'required',
                 'exists:mengajars,id',
+                Rule::unique('jadwals', 'mengajar_id')->ignore($jadwal->id),
             ],
             'ruangan_id' => [
                 'nullable',
@@ -303,6 +319,32 @@ class JadwalController extends Controller
         if (! $mengajar->semester->is_active) {
             throw ValidationException::withMessages([
                 'mengajar_id' => 'Jadwal hanya dapat dibuat untuk semester aktif.',
+            ]);
+        }
+
+        /*
+        |--------------------------------------------------------------------------
+        | Validasi Duplikasi Mata Pelajaran per Kelas dalam 1 Minggu / Semester
+        |--------------------------------------------------------------------------
+        */
+
+        $existingJadwalMapel = Jadwal::with(['mengajar.guru', 'mengajar.mataPelajaran', 'mengajar.kelasAkademik'])
+            ->whereHas('mengajar', function ($query) use ($mengajar) {
+                $query->where('kelas_akademik_id', $mengajar->kelas_akademik_id)
+                    ->where('mata_pelajaran_id', $mengajar->mata_pelajaran_id)
+                    ->where('semester_id', $mengajar->semester_id);
+            })
+            ->when($exceptJadwalId, fn ($query) => $query->whereKeyNot($exceptJadwalId))
+            ->first();
+
+        if ($existingJadwalMapel) {
+            $mapelNama = $mengajar->mataPelajaran?->nama ?? 'Mata pelajaran';
+            $kelasNama = $mengajar->kelasAkademik?->nama_lengkap ?? 'kelas ini';
+            $hariNama = ucfirst($existingJadwalMapel->hari);
+            $jamSlot = $existingJadwalMapel->jam;
+
+            throw ValidationException::withMessages([
+                'mengajar_id' => "Mata pelajaran {$mapelNama} sudah memiliki jadwal di kelas {$kelasNama} pada hari {$hariNama} ({$jamSlot}). Setiap mata pelajaran pada kelas yang sama hanya dapat dijadwalkan 1 kali dalam seminggu.",
             ]);
         }
 

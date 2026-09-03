@@ -16,12 +16,18 @@ class NilaiController extends Controller
 {
     private const KKM = 75;
 
-    private const BOBOT = [
-        'NH' => 20,
-        'TUGAS' => 20,
-        'UTS' => 30,
-        'UAS' => 30,
-    ];
+    public function getBobot(): array
+    {
+        $bobotMap = \App\Models\JenisNilai::getBobotMap();
+
+        return ! empty($bobotMap) ? $bobotMap : [
+            'NH' => 20,
+            'TUGAS' => 20,
+            'KTR' => 20,
+            'UTS' => 20,
+            'UAS' => 20,
+        ];
+    }
 
     public function index(Request $request): View
     {
@@ -187,7 +193,7 @@ class NilaiController extends Controller
             'tahunAkademik',
         ]);
 
-        $bobot = self::BOBOT;
+        $bobot = $this->getBobot();
         $kkm = self::KKM;
 
         $currentPage = \Illuminate\Pagination\LengthAwarePaginator::resolveCurrentPage();
@@ -305,31 +311,57 @@ class NilaiController extends Controller
                 }
             }
         )
+            ->with([
+                'mengajars' => function ($query) use (
+                    $kelasWali,
+                    $semesterId
+                ) {
+                    $query->where(
+                        'kelas_akademik_id',
+                        $kelasWali->id
+                    );
+
+                    if ($semesterId) {
+                        $query->where(
+                            'semester_id',
+                            $semesterId
+                        );
+                    }
+                },
+                'mengajars.guru',
+            ])
             ->orderBy('nama')
             ->get();
-
-        $raportSiswa = $mataPelajarans
-            ->map(function (
-                MataPelajaran $mataPelajaran
-            ) use ($nilais) {
-                return [
-                    'mata_pelajaran' => $mataPelajaran,
-                    'rekap' => $this->rekapMataPelajaran(
-                        $nilais,
-                        $mataPelajaran->id
-                    ),
-                ];
-            });
 
         $semesters = Semester::with('tahunAkademik')
             ->where(
                 'tahun_akademik_id',
                 $kelasWali->tahun_akademik_id
             )
-            ->orderBy('tanggal_mulai')
+            ->orderByDesc('id')
             ->get();
 
-        $bobot = self::BOBOT;
+        $raportSiswa = $mataPelajarans
+            ->map(function (
+                MataPelajaran $mataPelajaran
+            ) use ($nilais) {
+                $mengajar = $mataPelajaran
+                    ->mengajars
+                    ->first();
+
+                $rekap = $this->rekapMataPelajaran(
+                    $nilais,
+                    $mataPelajaran->id
+                );
+
+                return [
+                    'mata_pelajaran' => $mataPelajaran,
+                    'guru' => $mengajar?->guru,
+                    'rekap' => $rekap,
+                ];
+            });
+
+        $bobot = $this->getBobot();
         $kkm = self::KKM;
 
         return view(
@@ -341,7 +373,7 @@ class NilaiController extends Controller
                 'semesters',
                 'semesterId',
                 'bobot',
-                'kkm'
+                'kkm',
             )
         );
     }
@@ -387,6 +419,11 @@ class NilaiController extends Controller
             'TUGAS'
         );
 
+        $nilaiKeterampilan = $this->averageByJenis(
+            $nilaiMapel,
+            'KTR'
+        );
+
         $nilaiUts = $this->averageByJenis(
             $nilaiMapel,
             'UTS'
@@ -400,6 +437,7 @@ class NilaiController extends Controller
         $nilaiAkhir = $this->calculateWeightedAverage([
             'NH' => $nilaiHarian,
             'TUGAS' => $nilaiTugas,
+            'KTR' => $nilaiKeterampilan,
             'UTS' => $nilaiUts,
             'UAS' => $nilaiUas,
         ]);
@@ -407,6 +445,7 @@ class NilaiController extends Controller
         return [
             'nilai_harian' => $nilaiHarian,
             'nilai_tugas' => $nilaiTugas,
+            'nilai_keterampilan' => $nilaiKeterampilan,
             'nilai_uts' => $nilaiUts,
             'nilai_uas' => $nilaiUas,
             'nilai_akhir' => $nilaiAkhir,
@@ -441,11 +480,12 @@ class NilaiController extends Controller
     private function calculateWeightedAverage(
         array $nilai
     ): ?float {
+        $bobotMap = $this->getBobot();
         $totalBobot = 0;
         $totalNilai = 0;
 
-        foreach (self::BOBOT as $kode => $bobot) {
-            if ($nilai[$kode] === null) {
+        foreach ($bobotMap as $kode => $bobot) {
+            if (! isset($nilai[$kode]) || $nilai[$kode] === null) {
                 continue;
             }
 

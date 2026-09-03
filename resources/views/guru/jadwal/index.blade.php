@@ -41,7 +41,7 @@
                     <option value="">Semua semester</option>
                     @foreach ($semesters as $semester)
                         <option value="{{ $semester->id }}" @selected((string) $semesterId === (string) $semester->id)>
-                            {{ ucfirst($semester->nama) }} - {{ $semester->tahunAkademik?->nama }}
+                            {{ $semester->nama_lengkap }}
                         </option>
                     @endforeach
                 </select>

@@ -24,6 +24,11 @@ class NilaiController extends Controller
             'jenisNilai',
             'mengajar.semester.tahunAkademik',
             'mengajar.kelasAkademik.kelas.jurusan',
+            'mengajar.kelasAkademik.anggotaKelas' => function ($query) {
+                $query->whereHas('siswa', function ($q) {
+                    $q->where('status', 'aktif');
+                });
+            },
             'mengajar.kelasAkademik.anggotaKelas.siswa',
             'mengajar.mataPelajaran',
             'nilais',
@@ -83,6 +88,9 @@ class NilaiController extends Controller
 
         $siswaIdsKelas = $kelasAkademik
             ->anggotaKelas()
+            ->whereHas('siswa', function ($q) {
+                $q->where('status', 'aktif');
+            })
             ->pluck('siswa_id');
 
         $siswaIdsInput = collect(
@@ -97,7 +105,7 @@ class NilaiController extends Controller
 
         if ($siswaTidakValid->isNotEmpty()) {
             throw ValidationException::withMessages([
-                'nilai' => 'Terdapat siswa yang bukan anggota kelas pada penilaian ini.',
+                'nilai' => 'Terdapat siswa yang bukan anggota kelas aktif pada penilaian ini.',
             ]);
         }
 
@@ -114,7 +122,7 @@ class NilaiController extends Controller
                 ->implode(', ');
 
             throw ValidationException::withMessages([
-                'nilai' => "Nilai belum diisi untuk siswa: {$namaSiswas}.",
+                'nilai' => "Nilai belum diisi untuk siswa aktif: {$namaSiswas}.",
             ]);
         }
 
@@ -142,6 +150,84 @@ class NilaiController extends Controller
                 'success',
                 'Nilai siswa berhasil disimpan.'
             );
+    }
+
+    public function editSiswa(\App\Models\Mengajar $mengajar, Siswa $siswa): View
+    {
+        $guru = Auth::user()->guru;
+        abort_unless($mengajar->guru_id === $guru?->id, 403, 'Anda tidak memiliki akses ke penugasan ini.');
+
+        $mengajar->load([
+            'semester.tahunAkademik',
+            'kelasAkademik.kelas.jurusan',
+            'mataPelajaran',
+            'penilaians.jenisNilai',
+        ]);
+
+        $isMember = $mengajar->kelasAkademik->anggotaKelas()
+            ->where('siswa_id', $siswa->id)
+            ->exists();
+
+        abort_unless($isMember, 404, 'Siswa tidak terdaftar pada kelas akademik ini.');
+
+        $penilaians = $mengajar->penilaians()->with('jenisNilai')->orderBy('jenis_nilai_id')->get();
+
+        $nilais = Nilai::where('siswa_id', $siswa->id)
+            ->whereIn('penilaian_id', $penilaians->pluck('id'))
+            ->get()
+            ->keyBy('penilaian_id');
+
+        $jenisNilais = \App\Models\JenisNilai::aktif()->get();
+        $bobotMap = \App\Models\JenisNilai::getBobotMap();
+
+        return view('guru.nilai.siswa', compact(
+            'mengajar',
+            'siswa',
+            'penilaians',
+            'nilais',
+            'jenisNilais',
+            'bobotMap'
+        ));
+    }
+
+    public function updateSiswa(Request $request, \App\Models\Mengajar $mengajar, Siswa $siswa): RedirectResponse
+    {
+        $guru = Auth::user()->guru;
+        abort_unless($mengajar->guru_id === $guru?->id, 403, 'Anda tidak memiliki akses ke penugasan ini.');
+
+        $validated = $request->validate([
+            'nilai' => ['nullable', 'array'],
+            'nilai.*' => ['nullable', 'numeric', 'min:0', 'max:100'],
+            'catatan' => ['nullable', 'array'],
+            'catatan.*' => ['nullable', 'string', 'max:1000'],
+        ]);
+
+        $penilaians = $mengajar->penilaians()->get();
+        $penilaianIds = $penilaians->pluck('id')->all();
+
+        DB::transaction(function () use ($validated, $penilaianIds, $siswa) {
+            foreach ($penilaianIds as $penilaianId) {
+                $nilaiVal = $validated['nilai'][$penilaianId] ?? null;
+                $catatanVal = $validated['catatan'][$penilaianId] ?? null;
+
+                if ($nilaiVal !== null && $nilaiVal !== '') {
+                    Nilai::updateOrCreate(
+                        [
+                            'penilaian_id' => $penilaianId,
+                            'siswa_id' => $siswa->id,
+                        ],
+                        [
+                            'nilai' => $nilaiVal,
+                            'catatan' => $catatanVal,
+                        ]
+                    );
+                }
+            }
+        });
+
+        return redirect()
+            ->route('guru.nilai.siswa', ['mengajar' => $mengajar->id, 'siswa' => $siswa->id])
+            ->with('success', "Nilai untuk {$siswa->nama} berhasil disimpan.");
     }
 
     private function authorizePenilaian(

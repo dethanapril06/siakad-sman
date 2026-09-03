@@ -15,13 +15,6 @@ class LaporanNilaiController extends Controller
 {
     private const KKM = 75;
 
-    private const BOBOT = [
-        'NH' => 20,
-        'TUGAS' => 20,
-        'UTS' => 30,
-        'UAS' => 30,
-    ];
-
     public function index(Request $request): View
     {
         $guru = Auth::user()->guru;
@@ -77,90 +70,7 @@ class LaporanNilaiController extends Controller
                 ->findOrFail($selectedMengajarId);
         }
 
-        $laporanNilai = collect();
-
-        if ($selectedMengajar) {
-            $anggotaKelas = AnggotaKelas::with('siswa')
-                ->where(
-                    'kelas_akademik_id',
-                    $selectedMengajar->kelas_akademik_id
-                )
-                ->get()
-                ->sortBy(
-                    fn (AnggotaKelas $anggota) =>
-                        $anggota->siswa?->nama
-                )
-                ->values();
-
-            $nilais = Nilai::with([
-                'penilaian.jenisNilai',
-            ])
-                ->whereIn(
-                    'siswa_id',
-                    $anggotaKelas->pluck('siswa_id')
-                )
-                ->whereHas(
-                    'penilaian',
-                    fn ($query) => $query->where(
-                        'mengajar_id',
-                        $selectedMengajar->id
-                    )
-                )
-                ->get()
-                ->groupBy('siswa_id');
-
-            $laporanNilai = $anggotaKelas
-                ->map(function (
-                    AnggotaKelas $anggota,
-                    int $index
-                ) use ($nilais) {
-                    $nilaiSiswa = $nilais->get(
-                        $anggota->siswa_id,
-                        collect()
-                    );
-
-                    $rataHarian = $this->averageByJenis(
-                        $nilaiSiswa,
-                        'NH'
-                    );
-
-                    $rataTugas = $this->averageByJenis(
-                        $nilaiSiswa,
-                        'TUGAS'
-                    );
-
-                    $nilaiUts = $this->averageByJenis(
-                        $nilaiSiswa,
-                        'UTS'
-                    );
-
-                    $nilaiUas = $this->averageByJenis(
-                        $nilaiSiswa,
-                        'UAS'
-                    );
-
-                    $rataRata = $this->calculateWeightedAverage([
-                        'NH' => $rataHarian,
-                        'TUGAS' => $rataTugas,
-                        'UTS' => $nilaiUts,
-                        'UAS' => $nilaiUas,
-                    ]);
-
-                    return [
-                        'no' => $index + 1,
-                        'siswa' => $anggota->siswa,
-                        'nilai_harian' => $rataHarian,
-                        'nilai_tugas' => $rataTugas,
-                        'nilai_uts' => $nilaiUts,
-                        'nilai_uas' => $nilaiUas,
-                        'rata_rata' => $rataRata,
-                        'kkm' => self::KKM,
-                        'keterangan' => $rataRata >= self::KKM
-                            ? 'Tuntas'
-                            : 'Belum Tuntas',
-                    ];
-                });
-        }
+        $laporanNilai = $this->buildLaporanNilai($selectedMengajar);
 
         $currentPage = \Illuminate\Pagination\LengthAwarePaginator::resolveCurrentPage();
         $perPage = 10;
@@ -184,39 +94,127 @@ class LaporanNilaiController extends Controller
                 'selectedMengajarId' => $selectedMengajarId,
                 'laporanNilai' => $laporanNilai,
                 'paginatedLaporanNilai' => $paginatedLaporanNilai,
-                'bobot' => self::BOBOT,
+                'bobot' => $this->getBobot(),
                 'kkm' => self::KKM,
             ]
         );
     }
 
-    private function averageByJenis(
-        $nilaiSiswa,
-        string $kode
-    ): ?float {
+    public function cetak(Request $request): View
+    {
+        $guru = Auth::user()->guru;
+
+        abort_if(! $guru, 403, 'Data guru tidak ditemukan.');
+
+        $mengajarId = $request->integer('mengajar_id');
+        $selectedMengajar = Mengajar::with([
+            'semester.tahunAkademik',
+            'kelasAkademik.kelas.jurusan',
+            'mataPelajaran',
+            'guru',
+        ])
+            ->where('guru_id', $guru->id)
+            ->findOrFail($mengajarId);
+
+        $laporanNilai = $this->buildLaporanNilai($selectedMengajar);
+        $bobot = $this->getBobot();
+        $kepalaSekolah = \App\Models\Sekolah::first()?->kepalaSekolah
+            ?? \App\Models\Guru::where('status', 'aktif')->first();
+
+        return view('guru.laporan-nilai.cetak', [
+            'selectedMengajar' => $selectedMengajar,
+            'laporanNilai' => $laporanNilai,
+            'bobot' => $bobot,
+            'kkm' => self::KKM,
+            'guru' => $guru,
+            'kepalaSekolah' => $kepalaSekolah,
+        ]);
+    }
+
+    private function buildLaporanNilai(?Mengajar $selectedMengajar)
+    {
+        if (! $selectedMengajar) {
+            return collect();
+        }
+
+        $anggotaKelas = AnggotaKelas::with('siswa')
+            ->where('kelas_akademik_id', $selectedMengajar->kelas_akademik_id)
+            ->get()
+            ->sortBy(fn (AnggotaKelas $anggota) => $anggota->siswa?->nama)
+            ->values();
+
+        $nilais = Nilai::with(['penilaian.jenisNilai'])
+            ->whereIn('siswa_id', $anggotaKelas->pluck('siswa_id'))
+            ->whereHas('penilaian', fn ($query) => $query->where('mengajar_id', $selectedMengajar->id))
+            ->get()
+            ->groupBy('siswa_id');
+
+        return $anggotaKelas->map(function (AnggotaKelas $anggota, int $index) use ($nilais) {
+            $nilaiSiswa = $nilais->get($anggota->siswa_id, collect());
+
+            $rataHarian = $this->averageByJenis($nilaiSiswa, 'NH');
+            $rataTugas = $this->averageByJenis($nilaiSiswa, 'TUGAS');
+            $rataKeterampilan = $this->averageByJenis($nilaiSiswa, 'KTR');
+            $nilaiUts = $this->averageByJenis($nilaiSiswa, 'UTS');
+            $nilaiUas = $this->averageByJenis($nilaiSiswa, 'UAS');
+
+            $rataRata = $this->calculateWeightedAverage([
+                'NH' => $rataHarian,
+                'TUGAS' => $rataTugas,
+                'KTR' => $rataKeterampilan,
+                'UTS' => $nilaiUts,
+                'UAS' => $nilaiUas,
+            ]);
+
+            return [
+                'no' => $index + 1,
+                'siswa' => $anggota->siswa,
+                'nilai_harian' => $rataHarian,
+                'nilai_tugas' => $rataTugas,
+                'nilai_keterampilan' => $rataKeterampilan,
+                'nilai_uts' => $nilaiUts,
+                'nilai_uas' => $nilaiUas,
+                'rata_rata' => $rataRata,
+                'kkm' => self::KKM,
+                'keterangan' => $rataRata >= self::KKM ? 'Tuntas' : 'Belum Tuntas',
+            ];
+        });
+    }
+
+    public function getBobot(): array
+    {
+        $bobotMap = \App\Models\JenisNilai::getBobotMap();
+
+        return ! empty($bobotMap) ? $bobotMap : [
+            'NH' => 20,
+            'TUGAS' => 20,
+            'KTR' => 20,
+            'UTS' => 20,
+            'UAS' => 20,
+        ];
+    }
+
+    private function averageByJenis($nilaiSiswa, string $kode): ?float
+    {
         $nilaiJenis = $nilaiSiswa->filter(
-            fn (Nilai $nilai) =>
-                $nilai->penilaian?->jenisNilai?->kode === $kode
+            fn (Nilai $nilai) => $nilai->penilaian?->jenisNilai?->kode === $kode
         );
 
         if ($nilaiJenis->isEmpty()) {
             return null;
         }
 
-        return round(
-            (float) $nilaiJenis->avg('nilai'),
-            2
-        );
+        return round((float) $nilaiJenis->avg('nilai'), 2);
     }
 
-    private function calculateWeightedAverage(
-        array $nilai
-    ): float {
+    private function calculateWeightedAverage(array $nilai): float
+    {
+        $bobotMap = $this->getBobot();
         $totalBobot = 0;
         $totalNilai = 0;
 
-        foreach (self::BOBOT as $kode => $bobot) {
-            if ($nilai[$kode] === null) {
+        foreach ($bobotMap as $kode => $bobot) {
+            if (! isset($nilai[$kode]) || $nilai[$kode] === null) {
                 continue;
             }
 
@@ -228,9 +226,6 @@ class LaporanNilaiController extends Controller
             return 0;
         }
 
-        return round(
-            $totalNilai / $totalBobot,
-            2
-        );
+        return round($totalNilai / $totalBobot, 2);
     }
 }

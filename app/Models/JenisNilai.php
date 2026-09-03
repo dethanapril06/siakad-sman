@@ -12,12 +12,16 @@ class JenisNilai extends Model
     protected $fillable = [
         'kode',
         'nama',
+        'bobot',
+        'urutan',
         'is_active',
     ];
 
     protected function casts(): array
     {
         return [
+            'bobot' => 'integer',
+            'urutan' => 'integer',
             'is_active' => 'boolean',
         ];
     }
@@ -29,6 +33,11 @@ class JenisNilai extends Model
 
     public function scopeAktif($query)
     {
-        return $query->where('is_active', true);
+        return $query->where('is_active', true)->orderBy('urutan');
+    }
+
+    public static function getBobotMap(): array
+    {
+        return static::aktif()->pluck('bobot', 'kode')->toArray();
     }
 }

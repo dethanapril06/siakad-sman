@@ -17,12 +17,18 @@ class NilaiController extends Controller
 {
     private const KKM = 75;
 
-    private const BOBOT = [
-        'NH' => 20,
-        'TUGAS' => 20,
-        'UTS' => 30,
-        'UAS' => 30,
-    ];
+    public function getBobot(): array
+    {
+        $bobotMap = \App\Models\JenisNilai::getBobotMap();
+
+        return ! empty($bobotMap) ? $bobotMap : [
+            'NH' => 20,
+            'TUGAS' => 20,
+            'KTR' => 20,
+            'UTS' => 20,
+            'UAS' => 20,
+        ];
+    }
 
     public function index(Request $request): View
     {
@@ -614,6 +620,11 @@ class NilaiController extends Controller
             'TUGAS'
         );
 
+        $nilaiKeterampilan = $this->averageByJenis(
+            $nilaiMapel,
+            'KTR'
+        );
+
         $nilaiUts = $this->averageByJenis(
             $nilaiMapel,
             'UTS'
@@ -627,6 +638,7 @@ class NilaiController extends Controller
         $nilaiAkhir = $this->calculateWeightedAverage([
             'NH' => $nilaiHarian,
             'TUGAS' => $nilaiTugas,
+            'KTR' => $nilaiKeterampilan,
             'UTS' => $nilaiUts,
             'UAS' => $nilaiUas,
         ]);
@@ -634,6 +646,7 @@ class NilaiController extends Controller
         return [
             'nilai_harian' => $nilaiHarian,
             'nilai_tugas' => $nilaiTugas,
+            'nilai_keterampilan' => $nilaiKeterampilan,
             'nilai_uts' => $nilaiUts,
             'nilai_uas' => $nilaiUas,
             'nilai_akhir' => $nilaiAkhir,
@@ -668,11 +681,12 @@ class NilaiController extends Controller
     private function calculateWeightedAverage(
         array $nilai
     ): ?float {
+        $bobotMap = $this->getBobot();
         $totalBobot = 0;
         $totalNilai = 0;
 
-        foreach (self::BOBOT as $kode => $bobot) {
-            if ($nilai[$kode] === null) {
+        foreach ($bobotMap as $kode => $bobot) {
+            if (! isset($nilai[$kode]) || $nilai[$kode] === null) {
                 continue;
             }
 

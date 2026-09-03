@@ -77,6 +77,11 @@ class AbsensiController extends Controller
         $pertemuan->load([
             'mengajar.kelasAkademik.kelas.jurusan',
             'mengajar.mataPelajaran',
+            'mengajar.kelasAkademik.anggotaKelas' => function ($query) {
+                $query->whereHas('siswa', function ($q) {
+                    $q->where('status', 'aktif');
+                });
+            },
             'mengajar.kelasAkademik.anggotaKelas.siswa',
             'absensis',
         ]);
@@ -121,6 +126,9 @@ class AbsensiController extends Controller
                     'terlambat',
                 ]),
             ],
+            'absensi.*.is_terlambat' => [
+                'nullable',
+            ],
             'absensi.*.keterangan' => [
                 'nullable',
                 'string',
@@ -137,6 +145,9 @@ class AbsensiController extends Controller
 
         $siswaIdsKelas = $kelasAkademik
             ->anggotaKelas()
+            ->whereHas('siswa', function ($q) {
+                $q->where('status', 'aktif');
+            })
             ->pluck('siswa_id');
 
         $siswaIdsInput = collect(
@@ -151,7 +162,7 @@ class AbsensiController extends Controller
 
         if ($siswaTidakValid->isNotEmpty()) {
             throw ValidationException::withMessages([
-                'absensi' => 'Terdapat siswa yang bukan anggota kelas pada penugasan mengajar ini.',
+                'absensi' => 'Terdapat siswa yang bukan anggota kelas aktif pada penugasan mengajar ini.',
             ]);
         }
 
@@ -168,7 +179,7 @@ class AbsensiController extends Controller
                 ->implode(', ');
 
             throw ValidationException::withMessages([
-                'absensi' => "Absensi belum diisi untuk siswa: {$namaSiswas}.",
+                'absensi' => "Absensi belum diisi untuk siswa aktif: {$namaSiswas}.",
             ]);
         }
 
@@ -177,13 +188,20 @@ class AbsensiController extends Controller
             $pertemuan
         ): void {
             foreach ($validated['absensi'] as $item) {
+                $status = $item['status'];
+                $isTerlambat = ! empty($item['is_terlambat']) && in_array($item['is_terlambat'], [1, '1', 'ya', true], true);
+
+                if ($status === 'hadir' && $isTerlambat) {
+                    $status = 'terlambat';
+                }
+
                 Absensi::updateOrCreate(
                     [
                         'pertemuan_id' => $pertemuan->id,
                         'siswa_id' => $item['siswa_id'],
                     ],
                     [
-                        'status' => $item['status'],
+                        'status' => $status,
                         'keterangan' => $item['keterangan'] ?? null,
                     ]
                 );
